@@ -48,7 +48,17 @@ $ anvil
 ### Deploy
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+
+
+forge script script/Deploy.s.sol:Deploy \
+  --rpc-url http://127.0.0.1:8545 \
+  --broadcast \
+  --mnemonics "test test test test test test test test test test test junk" \
+  --mnemonic-indexes 0 \
+  -vvvv
+
+``
+
 ```
 
 ### Cast

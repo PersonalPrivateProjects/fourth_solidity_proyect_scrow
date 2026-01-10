@@ -10,6 +10,7 @@ contract MockERC20 is ERC20 {
     }
 
     /// @notice Mint adicional para pruebas
+    /// Ojo cualquier puede llamar a esta función en este mock y mintiar tokens, en un token real no debería ser así sino solo el owner o minter autorizado
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
     }
