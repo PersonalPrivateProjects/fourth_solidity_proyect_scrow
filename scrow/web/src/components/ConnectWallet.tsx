@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { useWeb3 } from "@/src/lib/ethereum";
 
-const ANVIL_CHAIN_ID = 31337;
+const ANVIL_CHAIN_ID = process.env.NEXT_PUBLIC_CHAIN_ID || 31337;
 const ANVIL_CHAIN_HEX = "0x7a69"; // 31337 en hex
 const ANVIL_RPC = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545";
 
