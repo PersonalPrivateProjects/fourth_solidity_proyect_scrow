@@ -6,13 +6,17 @@ import { useState } from "react";
 import { useWeb3 } from "@/src/lib/ethereum";
 
 const ANVIL_CHAIN_ID = process.env.NEXT_PUBLIC_CHAIN_ID || 31337;
+console.log("ANVIL_CHAIN_ID:", ANVIL_CHAIN_ID);
 const ANVIL_CHAIN_HEX = "0x7a69"; // 31337 en hex
 const ANVIL_RPC = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545";
 
 export default function ConnectWallet() {
   const { account, chainId, connect, disconnect } = useWeb3();
   const [copying, setCopying] = useState(false);
-  const mismatch = chainId !== null && chainId !== ANVIL_CHAIN_ID;
+
+  console.log("connectWallet - chainId:", chainId);
+
+  const mismatch = chainId !== null && chainId !== Number(ANVIL_CHAIN_ID);
 
   const copyAddr = async () => {
     if (!account) return;

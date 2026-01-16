@@ -27,6 +27,8 @@ Guía paso a paso para desplegar **Scrow** en local con **Anvil/Foundry** y arra
 - **Node.js** + **npm**/**pnpm**
 - **MetaMask** en el navegador
 
+Nota: En la carpeta `sc` verifica que tengas instalado OpenZeppelin si no puede instalarlo con: `forge install OpenZeppelin/openzeppelin-contracts`
+
 > Sugerencia: Ten dos terminales: una para **anvil** y otra para **build/deploy**.
 
 ---
@@ -41,6 +43,7 @@ anvil
 ```
 
 Esto inicia una blockchain local en `http://127.0.0.1:8545` con **10 cuentas**, cada una con **10,000 ETH**.
+
 
 > 💡 **Tip:** Copia la **private key** de la primera cuenta que muestra Anvil; se usará para el deployment.
 

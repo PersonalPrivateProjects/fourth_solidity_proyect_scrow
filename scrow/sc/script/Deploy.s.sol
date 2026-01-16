@@ -16,10 +16,10 @@ contract Deploy is Script {
         // vm.startBroadcast(pk);
 
          // === Leer cuentas desde .env ===
-        address A0 = vm.envAddress("ANVIL_A0");
-        address A1 = vm.envAddress("ANVIL_A1");
-        address A2 = vm.envAddress("ANVIL_A2");
-        address A3 = vm.envAddress("ANVIL_A3");
+        constant address A0 = vm.envAddress("ANVIL_A0");
+        constant address A1 = vm.envAddress("ANVIL_A1");
+        constant address A2 = vm.envAddress("ANVIL_A2");
+        constant address A3 = vm.envAddress("ANVIL_A3");
 
         // Usar signer provisto por CLI (--mnemonic / --mnemonic-index)
         vm.startBroadcast();
