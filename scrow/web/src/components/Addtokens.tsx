@@ -15,6 +15,9 @@ function truncate(addr: string, start = 6, end = 6) {
 
 type TokenMeta = { address: string; name?: string; symbol?: string; decimals?: number };
 
+// Normaliza para comparación case-insensitive y sin espacios
+const normalize = (s?: string) => (s || "").trim().toLowerCase();
+
 export default function AddTokens() {
   const { account, chainId } = useWeb3();
   const {
@@ -88,7 +91,7 @@ export default function AddTokens() {
   useEffect(() => {
     mountedRef.current = true;
 
-    // Primera carga: NO hagas ref.click(); llama directamente a la función.
+    // Primera carga
     loadAllowed();
 
     // Limpieza al desmontar
@@ -97,7 +100,7 @@ export default function AddTokens() {
     };
   }, [loadAllowed]);
 
-  // Autorefresh cada 8s; pausado cuando la pestaña está oculta (igual que otras pantallas)
+  // Autorefresh cada 8s; pausado cuando la pestaña está oculta
   useEffect(() => {
     // limpia cualquier intervalo previo
     if (intervalRef.current) {
@@ -105,7 +108,6 @@ export default function AddTokens() {
       intervalRef.current = null;
     }
 
-    // Puedes autorefrescar siempre (no depende de account), ya que listar tokens es lectura pública.
     intervalRef.current = window.setInterval(() => {
       if (!loadingAllowed) {
         loadAllowed();
@@ -135,9 +137,44 @@ export default function AddTokens() {
     };
   }, [loadAllowed, loadingAllowed]);
 
+  // === Sets para validación de duplicados (UI) ===
+  const allowedNameSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const t of allowed) {
+      const n = normalize(t.name);
+      if (n) s.add(n);
+    }
+    return s;
+  }, [allowed]);
+
+  const allowedSymbolSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const t of allowed) {
+      const sym = normalize(t.symbol);
+      if (sym) s.add(sym);
+    }
+    return s;
+  }, [allowed]);
+
+  const allowedAddrSet = useMemo(
+    () => new Set(allowed.map((t) => t.address.toLowerCase())),
+    [allowed]
+  );
+
+  // Flags de duplicado para los inputs de creación
+  const duplicateName = useMemo(
+    () => allowedNameSet.has(normalize(name)),
+    [allowedNameSet, name]
+  );
+  const duplicateSymbol = useMemo(
+    () => allowedSymbolSet.has(normalize(symbol)),
+    [allowedSymbolSet, symbol]
+  );
+
+  // Habilitaciones de botones
   const canDeploy = useMemo(
-    () => !!isOwner && !!name.trim() && !!symbol.trim(),
-    [isOwner, name, symbol]
+    () => !!isOwner && !!name.trim() && !!symbol.trim() && !duplicateName && !duplicateSymbol,
+    [isOwner, name, symbol, duplicateName, duplicateSymbol]
   );
 
   const canAdd = useMemo(
@@ -148,7 +185,12 @@ export default function AddTokens() {
   const onDeploy = async () => {
     try {
       if (!isOwner) return alert("Solo el owner del contrato puede crear tokens");
-      if (!canDeploy) return;
+      if (!canDeploy) {
+        if (!name.trim() || !symbol.trim()) return;
+        if (duplicateName) return alert(`El nombre "${name}" ya está en uso en el TokenSwap`);
+        if (duplicateSymbol) return alert(`El símbolo "${symbol}" ya está en uso en el TokenSwap`);
+        return;
+      }
       setDeploying(true);
 
       // Revalida owner on-chain y normaliza direcciones
@@ -175,6 +217,30 @@ export default function AddTokens() {
     try {
       if (!isOwner) return alert("Solo el owner del contrato puede agregar tokens");
       if (!canAdd) return alert("Dirección de token inválida");
+
+      const addrLc = tokenAddress.toLowerCase();
+
+      // Evita agregar el mismo address
+      if (allowedAddrSet.has(addrLc)) {
+        return alert("Este token ya está agregado al TokenSwap.");
+      }
+
+      // Lee metadata del token para validar duplicados por name/symbol
+      const meta = await getTokenInfoSwap(tokenAddress);
+      if (!meta) {
+        return alert("El token no expone metadata ERC20 (name/symbol), no se puede validar.");
+      }
+
+      const n = normalize(meta.name);
+      const s = normalize(meta.symbol);
+
+      if (allowedNameSet.has(n)) {
+        return alert(`Ya existe un token con el nombre: ${meta.name}`);
+      }
+      if (allowedSymbolSet.has(s)) {
+        return alert(`Ya existe un token con el símbolo: ${meta.symbol}`);
+      }
+
       setAdding(true);
       await addToken(tokenAddress);
       await loadAllowed(); // refrescar tarjetas inmediatamente
@@ -354,18 +420,28 @@ export default function AddTokens() {
           <div className="space-y-3">
             <div className="text-sm font-medium">Crear nuevo token (MockERC20)</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input
-                className="rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm text-zinc-200"
-                placeholder="Nombre (p.ej., Token X)"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <input
-                className="rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm text-zinc-200"
-                placeholder="Símbolo (p.ej., TKX)"
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
-              />
+              <div>
+                <input
+                  className="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm text-zinc-200"
+                  placeholder="Nombre (p.ej., Token X)"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+                {duplicateName && (
+                  <p className="text-xs text-red-400 mt-1">Este nombre ya está en uso en el TokenSwap.</p>
+                )}
+              </div>
+              <div>
+                <input
+                  className="w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm text-zinc-200"
+                  placeholder="Símbolo (p.ej., TKX)"
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value)}
+                />
+                {duplicateSymbol && (
+                  <p className="text-xs text-red-400 mt-1">Este símbolo ya está en uso en el TokenSwap.</p>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -436,3 +512,4 @@ export default function AddTokens() {
     </div>
   );
 }
+
